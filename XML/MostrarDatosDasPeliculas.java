@@ -28,7 +28,7 @@ public class MostrarDatosDasPeliculas {
     }
 
 
-    //cambiar esto, porque si no me da un bucle triple y queda un poco feo
+   
     public static void MostraDatos(Document doc){
         NodeList peliculas = doc.getElementsByTagName("pelicula");
         for (int i = 0; i < peliculas.getLength(); i++) {
@@ -70,5 +70,9 @@ public class MostrarDatosDasPeliculas {
         String ruta = "XML\\peliculas.xml";
         Document doc = CreaArbore(ruta);
         MostraDatos(doc);
+        
+
     }
+
+    
 }
