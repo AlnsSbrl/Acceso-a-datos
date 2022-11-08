@@ -3,6 +3,9 @@ import java.io.FileNotFoundException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -86,27 +89,55 @@ public class DatosMetereoloxicos {
         return jsonRoot.getJsonObject("coord");
     }
 
-    
-    public void DatosDoTempo(JsonObject jsonRoot){
-       
+    /**
+     * Devolve a temperatura, humidade, probabilidade de nubes, velocidade do vento, a data e os distintos pronosticos do tempo
+     * @param jsonRoot nodo raiz do arquivo Json de OpenWeatherMaps
+     * @return os datos nunha collecion
+     */
+    public ArrayList<Object> getDatosDoTempo(JsonObject jsonRoot){
 
-        JsonArray array = (JsonArray) Json.createArrayBuilder().add(Json.createObjectBuilder()
-        .add("temperatura", jsonRoot.getJsonObject("main").getJsonNumber("temp"))
-        .add("humidade",jsonRoot.getJsonObject("main").getJsonNumber("humidity"))
-        .add("probabilidade nubes",jsonRoot.getJsonObject("clouds").getInt("all"))
-        .add("velocidade do vento",jsonRoot.getJsonObject("wind").getJsonNumber("speed"))
-        .add("data",unixTimeToString( jsonRoot.getInt("dt")))
-        .add("pronostico do tempo", getDiagnostico(jsonRoot))) //me falta arreglar esto
-        .build(); 
+            ArrayList<Object> datos = new ArrayList<>();
+            datos.add("temperatura");
+            datos.add(jsonRoot.getJsonObject("main").getJsonNumber("temp"));
+            datos.add("humidade");
+            datos.add(jsonRoot.getJsonObject("main").getJsonNumber("humidity"));
+            datos.add("probabilidade de nubes");
+            datos.add(jsonRoot.getJsonObject("clouds").getJsonNumber("all"));
+            datos.add("velocidade do vento");
+            datos.add(jsonRoot.getJsonObject("wind").getJsonNumber("speed"));
+            datos.add("data");
+            datos.add(unixTimeToString(jsonRoot.getInt("dt")));
+            datos.add("pronosticos do tempo ");
+            datos.add(getPronosticos(jsonRoot.getJsonArray("weather")));
+
+            System.out.println(datos.toString());
             
-        
-        System.out.println(array.toString());
+        return datos;
     }
+    public ArrayList<Object> getPronosticos(JsonArray jsonRoot){
 
-    public JsonValue getDiagnostico(JsonObject jsonRoot){
-        return null;
+        ArrayList<Object> pronosticos = new ArrayList<>();
+        for (int i = 0; i < jsonRoot.size(); i++) {
+            pronosticos.add("Pronostico "+(i+1));
+            pronosticos.add(jsonRoot.getJsonObject(i).getString("description"));
+        }
+        return pronosticos;
     }
+    
+    public ArrayList<Object> getDatosDoTempoMultiplesCidades(JsonObject jsonRoot){
 
+        //por algun motivo esto de aqui me peta el visual studio code
+        ArrayList<Object> datosCidades = new ArrayList<>();
+
+        JsonArray listaDeJsonObj = jsonRoot.getJsonArray("list");
+        System.err.println(listaDeJsonObj.size());
+        for (int i = 0; i < listaDeJsonObj.size(); i++) {
+            datosCidades.add(listaDeJsonObj.getJsonObject(i).getString("name"));
+            datosCidades.add(getDatosDoTempo(listaDeJsonObj.getJsonObject(i)));
+        }
+        System.out.println(datosCidades.toString());
+        return datosCidades;
+    }
     public String unixTimeToString (int unixTime){
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return Instant.ofEpochSecond(unixTime).atZone(ZoneId.of("GMT+1")).format(formatter);
@@ -117,8 +148,12 @@ public class DatosMetereoloxicos {
         //System.out.println(datos.DatosPorNomeLocalidade("vigo").toString());
         Jsonn jsonn = new Jsonn();
         String consultaWeather="http://api.openweathermap.org/data/2.5/weather?lat=42.232819&lon=-8.72264&units=metric&APPID=8f8dccaf02657071004202f05c1fdce0";
+        String consultaWeatherCidadesProximas = "http://api.openweathermap.org/data/2.5/find?lat=42.232819&lon=-8.72264&cnt=5&APPID=8f8dccaf02657071004202f05c1fdce0";
         JsonObject jsonRoot= jsonn.leeJSON(consultaWeather).asJsonObject();
-        System.out.println(datos.CoordenadasOpenWeather(jsonRoot).toString());
-        datos.DatosDoTempo(jsonRoot);
+        //System.out.println(datos.CoordenadasOpenWeather(jsonRoot).toString());
+        //datos.getDatosDoTempo(jsonRoot);
+        JsonObject jsonRootMultiples = jsonn.leeJSON(consultaWeatherCidadesProximas).asJsonObject();
+        datos.getDatosDoTempoMultiplesCidades(jsonRootMultiples);
+        //System.out.println(jsonRoot.toString());
     }
 }
