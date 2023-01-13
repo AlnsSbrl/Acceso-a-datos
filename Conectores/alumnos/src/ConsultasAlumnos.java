@@ -1,11 +1,15 @@
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import javax.swing.plaf.ColorUIResource;
+
 public class ConsultasAlumnos {
 
     public ConectarDB cdb;
+    private PreparedStatement preparedStatement=null;
 
     /**
      * Se obtienen los alumnos que contengan el parámetro
@@ -191,11 +195,14 @@ public class ConsultasAlumnos {
     }
 
     // sin sentencias preparadas
-    // TODO terminar el metodo
-    public void buscaPorPatron(String patron) {
+    public void buscaPorPatron(String patron, int altura) {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
-            String query = "Select nombre from alumnos where nombre like " + patron;
+            String query = "Select nombre from alumnos where nombre like '%" + patron+"%' and altura>"+altura;
+            
             ResultSet rs = sentencia.executeQuery(query);
+            while(rs.next()){
+                System.out.println(rs.getString("nombre"));
+            }
         } catch (SQLException e) {
             e.getSQLState();
             e.getErrorCode();
@@ -203,22 +210,49 @@ public class ConsultasAlumnos {
         }
     }
 
-    // TODO buscar como hacer las sentencias preparadas (hay que modificar la
-    // conexion...hago dos conexiones diferentes?)
-    public void buscaPorPatronSentenciaPreparada(String patron) {
+    // con sentencia preparada
+    public void buscaPorPatronSentenciaPreparada(String patron, int altura) {
+        try {
+            String query = "SELECT nombre from alumnos where nombre like ? and altura>?";
+            if(this.preparedStatement==null){
+                this.preparedStatement=this.cdb.conexion.prepareStatement(query);
+            }
+            preparedStatement.setString(1,"%"+patron+"%");
+            preparedStatement.setInt(2, altura);
+            ResultSet rs = preparedStatement.executeQuery();
+            while(rs.next()){
+                System.out.println(rs.getString("nombre"));
+            }
+            
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+    }
 
+    public void engadirTabla(Columna colum){
+        try(Statement sentencia = this.cdb.conexion.createStatement()){
+            String query = String.format("ALTER TABLE %s ADD %s %s %s;", colum.tabla,colum.nombreColumna, colum.dataType,colum.propiedades);
+            
+            
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
     }
 
     public static void main(String[] args) throws Exception {
 
         ConsultasAlumnos consu = new ConsultasAlumnos();
         consu.cdb = new ConectarDB();
-        consu.cdb.conectar("conectores", "localhost", "root", "");
-        // consu.BuscaAlumno("fr");
-        Alumno[] alumnos = new Alumno[1];
-        alumnos[0] = new Alumno("que onda", "cor por", 180, 20);
-        // alumnos[1] = new Alumno("curro", "f", 160, 11);
-        consu.insertarAlumnos(alumnos);
+         consu.cdb.conectar("conectores", "localhost", "root", "");
+        // consu.buscaAlumnos("fr");
+        // Alumno[] alumnos = new Alumno[1];
+        // alumnos[0] = new Alumno("que onda", "cor por", 180, 20);
+        // // alumnos[1] = new Alumno("curro", "f", 160, 11);
+        // consu.insertarAlumnos(alumnos);
         // // String[] asignaturas ={"Acceso a datos","php","frontend","backend","Tekken
         // // 2"};
         // // consu.InsertarAsignaturas(asignaturas);
@@ -229,6 +263,31 @@ public class ConsultasAlumnos {
         // //consu.notasAlumnosEnAsignaturas();
         // consu.buscaPorPatron(patron);
         // consu.aulasConAlumnos();
+        // long tPosterior;
+        // long tActual = System.currentTimeMillis();
+        // for (int i = 0; i < 1000000; i++) {
+        //     consu.buscaPorPatron("fr", 180);
+        // }
+        // tPosterior = System.currentTimeMillis();
+        // System.out.println(tPosterior-tActual);
+        // tActual=System.currentTimeMillis();
+        // for (int i = 0; i < 1000000; i++) {
+        //     consu.buscaPorPatronSentenciaPreparada("fr", 180);
+        // }
+        // tPosterior=System.currentTimeMillis();
+        // System.out.println(tPosterior-tActual);
         consu.cdb.CerrarConexion();
     }
 }
+
+/* 
+  try(Statement sentencia = this.cdb.conexion.createStatement()){
+
+        
+            
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+*/
