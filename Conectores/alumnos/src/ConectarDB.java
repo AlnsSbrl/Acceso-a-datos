@@ -6,7 +6,7 @@ import java.sql.SQLException;
 public class ConectarDB {
 
     public Connection conexion;
-
+    String database;
 
     public void conectar(String db, String server, String user, String password) {
         try {
@@ -15,6 +15,7 @@ public class ConectarDB {
 
             if (this.conexion != null) {
                 System.out.printf("conectado a %s en %s \n", db, server);
+                database=db;
             } else {
                 System.out.printf("no conectado a %s en %s \n", db, server);
             }
