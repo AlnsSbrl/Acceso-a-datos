@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import javax.swing.plaf.ColorUIResource;
+
 public class ConsultasAlumnos {
 
     public ConectarDB cdb;
@@ -100,7 +102,7 @@ public class ConsultasAlumnos {
      * @param codigoAlumno clave primaria identificadora del alumno
      * @apiNote corregido
      */
-    public void borraAlumno(int codigoAlumno) {
+    public int borraAlumno(int codigoAlumno) {
         int elemBorrado = 0;
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
             String query = "delete from notas where alumno=" + codigoAlumno;
@@ -112,10 +114,12 @@ public class ConsultasAlumnos {
             } else {
                 System.out.println("non existe o alumno");
             }
+            return elemBorrado;
         } catch (SQLException e) {
             e.getSQLState();
             e.getErrorCode();
             e.getLocalizedMessage();
+            return -1;
         }
     }
 
@@ -123,34 +127,38 @@ public class ConsultasAlumnos {
      * Borra la asignatura de la base de datos
      * 
      * @param asignatura nombre de la asignatura
-     * @apiNote similar a la de borrar alumno, pero como busca por nombre en vez de
-     *          clave primaria es necesario dos consultas
+     * @apiNote corregido
      */
-    public void borraAsignatura(String asignatura) {
+    public int borraAsignatura(String asignatura) {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
 
             String query = "Select COD from asignaturas where NOMBRE ='" + asignatura + "'";
             ResultSet rs = sentencia.executeQuery(query);
+            int resultados = 0;
             if (rs.next()) {
                 int codigo = rs.getInt("COD");
                 query = "delete from notas where asignatura =" + codigo;
                 sentencia.executeUpdate(query);
                 query = "delete from asignaturas where NOMBRE = '" + asignatura + "'";
-                int resultados = sentencia.executeUpdate(query);
+                resultados = sentencia.executeUpdate(query);
                 System.out.println("asignaturas borradas: " + resultados);
             } else {
                 System.out.println("no se encontró la asignatura");
             }
+            return resultados;
 
         } catch (SQLException e) {
             e.getSQLState();
             e.getErrorCode();
             e.getLocalizedMessage();
+            return -1;
         }
     }
 
     /**
      * Muestra el nombre de las aulas que tienen alumnos
+     * 
+     * @apiNote corregido
      */
     public void aulasConAlumnos() {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
@@ -167,9 +175,11 @@ public class ConsultasAlumnos {
         }
     }
 
-   
     /**
-     * Muestra el nombre de los alumnos, de las asignaturas y las notas de las notas aprobadas
+     * Muestra el nombre de los alumnos, de las asignaturas y las notas de las notas
+     * aprobadas
+     * 
+     * @apiNote corregido
      */
     public void notasAlumnosEnAsignaturas() {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
@@ -189,6 +199,8 @@ public class ConsultasAlumnos {
 
     /**
      * Muestra el nombre de las asignaturas sin alumnos
+     * 
+     * @apiNote corregido
      */
     public void asignaturasSinAlumnos() {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
@@ -206,10 +218,12 @@ public class ConsultasAlumnos {
     }
 
     /**
-     * Muestra el nombre de los alumnos que cumplan los requisitos
+     * Muestra el nombre de los alumnos que cumplan los requisitos (sin sentencia
+     * preparada)
+     * 
      * @param patron parte del nombre de los alumnos
      * @param altura altura minima de los alumnos
-     * @apiNote sin sentencia preparada
+     * @apiNote corregido
      */
     public void buscaPorPatron(String patron, int altura) {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
@@ -227,10 +241,12 @@ public class ConsultasAlumnos {
     }
 
     /**
-     * Muestra el nombre de los alumnos que cumplan los requisitos
+     * Muestra el nombre de los alumnos que cumplan los requisitos con sentencia
+     * preparada
+     * 
      * @param patron parte del nombre de los alumnos
      * @param altura altura minima de los alumnos
-     * @apiNote con sentencia preparada
+     * @apiNote corregido
      */
     public void buscaPorPatronSentenciaPreparada(String patron, int altura) {
         try {
@@ -253,11 +269,13 @@ public class ConsultasAlumnos {
     }
 
     /**
-     * Añade una columna a una tabla 
+     * Añade una columna a una tabla
+     * 
      * @param colum objeto columna que contiene la información de qué columna
      *              insertar en qué tabla y el tipo de dato que almacena
+     * @apiNote corregido
      */
-    public void engadirTabla(Columna colum) {
+    public int engadirTabla(Columna colum) {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
             String query = String.format("ALTER TABLE %s ADD %s %s;", colum.tabla, colum.nombreColumna, colum.dataType);
             if (colum.propiedades != null) {
@@ -266,16 +284,21 @@ public class ConsultasAlumnos {
             System.out.println(query);
             int res = sentencia.executeUpdate(query);
             System.out.printf("Se han añadido %d columna(s)", res);
+            return res;
+
         } catch (SQLException e) {
             e.getSQLState();
             e.getErrorCode();
             e.getLocalizedMessage();
+            return -1;
         }
     }
 
     /**
      * Muestra la metadata asociada al driver, la conexion, el usuario y el SGBD
      * empleado
+     * 
+     * @apiNote corregido
      */
     public void driverConnectionUserDBPInfo() {
         DatabaseMetaData dbMetaData;
@@ -300,6 +323,8 @@ public class ConsultasAlumnos {
 
     /**
      * Muestra todas las bases de datos del SGBD al que estamos conectados
+     * 
+     * @apiNote corregido
      */
     public void getDatabases() {
         DatabaseMetaData dbmd;
@@ -321,7 +346,8 @@ public class ConsultasAlumnos {
      * Muestra el nombre de las tablas de la base de datos a la que estamos
      * conectados
      * 
-     * @apiNote el ejercicio pide la info de la base de datos ADD
+     * @implNote el ejercicio pide la info de la base de datos ADD
+     * @apiNote corregido
      */
     public void getTablesInfo() {
         DatabaseMetaData dbmd;
@@ -337,7 +363,8 @@ public class ConsultasAlumnos {
             tables.first();
             System.out.println("\nAHORA SOLO LAS VISTAS");
             while (tables.next()) {
-                // igual hay una mejor forma de comprobar esto?
+                // igual hay una mejor forma de comprobar esto?-> EFECTIVAMENTE, usando el get
+                // tables y modificando el parametro types(arriba está null)
                 if (tables.getString("TABLE_TYPE").equals("VIEW")) {
                     System.out.println(tables.getString("TABLE_NAME"));
                 }
@@ -352,6 +379,8 @@ public class ConsultasAlumnos {
     /**
      * Muestra todas las tablas de todas las bases de datos de nuestra conexión al
      * SGBD
+     * 
+     * @apiNote corregido
      */
     public void getAllTablesFromAllDatabases() {
         DatabaseMetaData dbmd;
@@ -374,15 +403,62 @@ public class ConsultasAlumnos {
         }
     }
 
+    /**
+     * Muestra los procesos que se están llevando a cabo en la base de datos en la
+     * que estamos conectados
+     * 
+     * @apiNote corregido
+     */
     public void getProcedures() {
         DatabaseMetaData dbmd;
         ResultSet procedures;
         try {
-            dbmd=this.cdb.conexion.getMetaData();
-            procedures= dbmd.getProcedures(this.cdb.database, null, null);
-            while(procedures.next()){
+            dbmd = this.cdb.conexion.getMetaData();
+            procedures = dbmd.getProcedures(this.cdb.database, null, null);
+            while (procedures.next()) {
                 System.out.println(procedures.getString("PROCEDURE_NAME"));
             }
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+    }
+
+    /**
+     * Mediante getColumns obtén de las tablas de la base de datos ADD que comiencen
+     * por 'a' los
+     * siguientes datos: posición de la columna, base de datos, tabla, nombre de la
+     * columna, nombre del
+     * tipo de dato de la columna, tamaño de la columna y si permite nulos. Indica
+     * también si has
+     * encontrado alguna tabla con un campo autoincrementado.
+     */
+    public void getDatosDeLasTablas(String tableNamePattern) {
+        DatabaseMetaData dbmd;
+        ResultSet databases,columnas;
+
+        try{
+            dbmd=this.cdb.conexion.getMetaData();
+            databases=dbmd.getCatalogs();
+            while(databases.next()){
+                columnas=dbmd.getColumns(databases.getString("TABLE_CAT"), null, tableNamePattern, null);
+                while(columnas.next()){
+                    System.out.printf("Posicion %d"
+                    +"\nBase de datos\t %s"
+                    +"\nTabla \t %s"
+                    +"\nTipo de dato \t %s"
+                    +"\nTamaño de la columna\t %d"
+                    +"\nPermite nulos?\t %s"
+                    +"\n",columnas.getRow(),
+                    columnas.getString("TABLE_CAT"),
+                    columnas.getString("TABLE_NAME"),
+                    columnas.getString("SQL_DATA_TYPE")
+                    ); 
+                    //TODO terminar el metodo
+                }
+            }
+
         } catch (SQLException e) {
             e.getSQLState();
             e.getErrorCode();
