@@ -1,9 +1,14 @@
 
 import java.sql.DatabaseMetaData;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Enumeration;
+import java.util.Scanner;
 
 import javax.swing.plaf.ColorUIResource;
 
@@ -426,36 +431,53 @@ public class ConsultasAlumnos {
     }
 
     /**
-     * Mediante getColumns obtén de las tablas de la base de datos ADD que comiencen
-     * por 'a' los
-     * siguientes datos: posición de la columna, base de datos, tabla, nombre de la
-     * columna, nombre del
-     * tipo de dato de la columna, tamaño de la columna y si permite nulos. Indica
-     * también si has
-     * encontrado alguna tabla con un campo autoincrementado.
+     * Muestra de las tablas que cumplan el patrón los siguientes datos de sus
+     * columnas: posición, base de datos, tabla, tipo de dato, tamaño de la columna,
+     * permite nulos, se autoincrementa
+     * 
+     * @param tableNamePattern         parte del nombre de la tabla, o nombre exacto
+     *                                 si los parámetros son false
+     * @param permiteMatchALaIzquierda permite tablas que cumplan el patrón del
+     *                                 nombre, sin importar que no lo cumpla a la
+     *                                 izquierda de este
+     * @param permiteMatchALaDerecha   permite tablas que cumplan el patrón del
+     *                                 nombre, sin importar que no lo cumpla a la
+     *                                 derecha de este
      */
-    public void getDatosDeLasTablas(String tableNamePattern) {
+    public void getDatosDeLasTablas(String tableNamePattern, boolean permiteMatchALaIzquierda,
+            boolean permiteMatchALaDerecha) {
         DatabaseMetaData dbmd;
-        ResultSet databases,columnas;
+        ResultSet databases, columnas;
 
-        try{
-            dbmd=this.cdb.conexion.getMetaData();
-            databases=dbmd.getCatalogs();
-            while(databases.next()){
-                columnas=dbmd.getColumns(databases.getString("TABLE_CAT"), null, tableNamePattern, null);
-                while(columnas.next()){
+        if (permiteMatchALaIzquierda) {
+            tableNamePattern = "%" + tableNamePattern;
+        }
+        if (permiteMatchALaDerecha) {
+            tableNamePattern += "%";
+        }
+        try {
+            dbmd = this.cdb.conexion.getMetaData();
+            databases = dbmd.getCatalogs();
+            while (databases.next()) {
+                columnas = dbmd.getColumns(databases.getString("TABLE_CAT"), null, tableNamePattern, null);
+                while (columnas.next()) {
                     System.out.printf("Posicion %d"
-                    +"\nBase de datos\t %s"
-                    +"\nTabla \t %s"
-                    +"\nTipo de dato \t %s"
-                    +"\nTamaño de la columna\t %d"
-                    +"\nPermite nulos?\t %s"
-                    +"\n",columnas.getRow(),
-                    columnas.getString("TABLE_CAT"),
-                    columnas.getString("TABLE_NAME"),
-                    columnas.getString("SQL_DATA_TYPE")
-                    ); 
-                    //TODO terminar el metodo
+                            + "\nBase de datos\t %s"
+                            + "\nTabla \t %s"
+                            + "\nTipo de dato \t %s"
+                            + "\nTamaño de la columna\t %d"
+                            + "\nPermite nulos?\t %s"
+                            + "\nSe autoincrementa sola?\t %s\n\n",
+                            columnas.getRow(),
+                            columnas.getString("TABLE_CAT"),
+                            columnas.getString("TABLE_NAME"),
+                            columnas.getString("TYPE_NAME"),
+                            columnas.getInt("COLUMN_SIZE"),
+                            columnas.getInt("NULLABLE") == 1 ? "Sí" : "No", // tecnicamente esto tiene un tercer valor,
+                                                                            // cuando no se sabe si se puede nular o no
+                                                                            // pero...//TAMBIEN acabo de ver que existe
+                                                                            // el getString("IS_NULLABLE")
+                            columnas.getString("IS_AUTOINCREMENT"));
                 }
             }
 
@@ -466,8 +488,108 @@ public class ConsultasAlumnos {
         }
     }
 
+    /**
+     * Muestra las claves primarias y foráneas de las tablas de la db
+     */
+    public void getPrimaryAndForeignKeys() {
+        DatabaseMetaData dbmd;
+        ResultSet clavesPrimarias, clavesForaneas;
+        try {
+            dbmd = this.cdb.conexion.getMetaData();
+            clavesPrimarias = dbmd.getPrimaryKeys(this.cdb.database, null, null);
+            clavesForaneas = dbmd.getExportedKeys(this.cdb.database, null, null);
+            while (clavesPrimarias.next()) {
+                System.out.println("Clave primaria de: " + clavesPrimarias.getString("TABLE_NAME") + "\t"
+                        + clavesPrimarias.getString("COLUMN_NAME"));
+            }
+
+            while (clavesForaneas.next()) {
+                System.out.println("Clave foránea de: " + clavesForaneas.getString("FKTABLE_NAME") + "\t"
+                        + clavesForaneas.getString("FKCOLUMN_NAME"));
+            }
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+    }
+
+    /**
+     * Realiza una sentencia y obtiene metadata de los resultados de la consulta
+     */
+    public void datosDeLasColumnasDeLaSentencia() {
+        ResultSetMetaData rsmd;
+        ResultSet res;
+        try (Statement sentencia = this.cdb.conexion.createStatement()) {
+            String query = "select *, nombre as nom from alumnos";
+            res = sentencia.executeQuery(query);
+            rsmd = res.getMetaData();
+            System.err.println(rsmd.getColumnCount());
+            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                // tiene que empezar en 1..................
+                System.out.printf("Nombre columna \t %s"
+                        + "\nAlias de la columna \t %s"
+                        + "\nTipo de dato: \t %s"
+                        + "\nEs autoincrementado? \t %s"
+                        + "\nPermite nulos? \t %s\n\n",
+                        rsmd.getColumnName(i),
+                        rsmd.getColumnLabel(i),
+                        rsmd.getColumnTypeName(i),
+                        rsmd.isAutoIncrement(i) ? "sí" : "no",
+                        rsmd.isNullable(i) == 1 ? "sí" : "no");
+
+            }
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+    }
+
+    public void consigueListaDeDrivers() {
+        // DriverManager driverManager;
+        try {
+            // no sé si se refiere a esto...?
+            Enumeration<Driver> drivers = DriverManager.getDrivers();
+            while (drivers.hasMoreElements()) {
+                System.out.println(drivers.nextElement().toString());
+            }
+        } catch (Exception e) {
+            // e.getSQLState();
+            // e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+    }
+
+    public int insertaAlumnos(Alumno[] alumnos) {
+
+        try (Statement sentencia = this.cdb.conexion.createStatement()) {
+            this.cdb.conexion.setAutoCommit(false);
+            for (Alumno alumno : alumnos) {
+                //TODO pregunta: ya que NO es autoincrementado y seleccionar el codigo máximo es una "jaimitada"...cuál es la mejor forma de hacerlo?
+                String query = String.format("INSERT INTO alumnos(codigo,nombre,apellidos,altura,aula) VALUES (%d,%s,%s,%d,%d)");
+                //TODO terminar el metodo
+            }
+        } catch (SQLException e) {
+            try{
+                if(this.cdb.conexion!=null){
+                    this.cdb.conexion.rollback();
+                }
+            }catch(SQLException eo){
+                eo.getSQLState();
+                eo.getErrorCode();
+                eo.getLocalizedMessage();
+            }
+        }                   
+        
+        return 0;
+    }
+
+   
+    
     public static void main(String[] args) throws Exception {
 
+        
         ConsultasAlumnos consu = new ConsultasAlumnos();
         consu.cdb = new ConectarDB();
         consu.cdb.conectar("conectores", "localhost", "root", "");
@@ -501,7 +623,8 @@ public class ConsultasAlumnos {
         // System.out.println(tPosterior-tActual);
         // Columna col = new Columna("suspensos", "asignaturas", "int", null);
         // consu.engadirTabla(col);
-        consu.getDatabases();
+        // consu.getDatosDeLasTablas("a", false, true);
+        consu.consigueListaDeDrivers();
         consu.cdb.CerrarConexion();
     }
 }
