@@ -10,7 +10,8 @@ public class ConectarDB {
 
     public void conectar(String db, String server, String user, String password) {
         try {
-            String url = String.format("jdbc:mariadb://%s:3306/%s?useServerPrepStmts=true", server, db);
+            String url = String.format("jdbc:mariadb://%s:3306/%s", server, db);
+            System.out.println(url);
             this.conexion = DriverManager.getConnection(url, user, password);
 
             if (this.conexion != null) {

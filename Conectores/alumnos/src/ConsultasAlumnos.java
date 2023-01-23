@@ -719,8 +719,8 @@ public class ConsultasAlumnos {
 
         ConsultasAlumnos consu = new ConsultasAlumnos();
         consu.cdb = new ConectarDB();
-        consu.cdb.conectar("conectores", "localhost", "root", "");
-        // consu.buscaAlumnos("fr");
+        consu.cdb.conectar("add", "localhost", "root", "");
+        consu.buscaAlumnos("fr");
         // Alumno[] alumnos = new Alumno[1];
         // alumnos[0] = new Alumno("que onda", "cor por", 180, 20);
         // // alumnos[1] = new Alumno("curro", "f", 160, 11);
