@@ -1,4 +1,10 @@
-
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -8,14 +14,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Enumeration;
-import java.util.Scanner;
-
-import javax.swing.plaf.ColorUIResource;
-
 public class ConsultasAlumnos {
 
     public ConectarDB cdb;
     private PreparedStatement preparedStatement = null;
+    private PreparedStatement sentenciaPreparadaImagen = null;
 
     /**
      * Se obtienen los alumnos que contengan el parámetro
@@ -561,35 +564,155 @@ public class ConsultasAlumnos {
         }
     }
 
+    /**
+     * Inserta un grupo de alumnos a la base de datos. Si algún alumno no se puede
+     * insertar, provoca fallo y cancela los cambios
+     * 
+     * @param alumnos grupo de alumnos a insertar
+     * @return el número de alumnos insertados en la tabla
+     * @apiNote NO lo he probado (no he cambiado las tablas a autoincrement)
+     */
     public int insertaAlumnos(Alumno[] alumnos) {
-
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
             this.cdb.conexion.setAutoCommit(false);
             for (Alumno alumno : alumnos) {
-                //TODO pregunta: ya que NO es autoincrementado y seleccionar el codigo máximo es una "jaimitada"...cuál es la mejor forma de hacerlo?
-                String query = String.format("INSERT INTO alumnos(codigo,nombre,apellidos,altura,aula) VALUES (%d,%s,%s,%d,%d)");
-                //TODO terminar el metodo
+                // supuestamente se cambió la tabla para que se autoincrementen los valores del
+                // codigo
+                String query = String.format("INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (%s,%s,%d,%d)",
+                        alumno.nombre, alumno.apellidos, alumno.altura, alumno.aula);
+                sentencia.executeUpdate(query);
             }
+            this.cdb.conexion.commit();
+            return alumnos.length;
         } catch (SQLException e) {
-            try{
-                if(this.cdb.conexion!=null){
+            System.out.println("No se han podido introducir los alumnos");
+            try {
+                if (this.cdb.conexion != null) {
                     this.cdb.conexion.rollback();
+                    System.out.println("se deshacen los cambios");
                 }
-            }catch(SQLException eo){
+            } catch (SQLException eo) {
                 eo.getSQLState();
                 eo.getErrorCode();
                 eo.getLocalizedMessage();
             }
-        }                   
-        
-        return 0;
+        }
+        return 0; // igual mejor poner -1, para indicar fallo idk
     }
 
-   
-    
+    /**
+     * Inserta un grupo de alumnos en la base de datos. Si alguno no se inserta,
+     * detiene la operación y no guarda los cambios
+     * 
+     * @param alumnos grupo de alumnos a insertar
+     * @return el número de alumnos a insertar
+     * @apiNote NO lo he probado (no he cambiado las tablas a autoincrement)
+     */
+    public int insertaAlumnosSinFallo(Alumno[] alumnos) {
+
+        try (Statement sentencia = this.cdb.conexion.createStatement()) {
+            this.cdb.conexion.setAutoCommit(false);
+            int alumnoInsertado = 0;
+            for (Alumno alumno : alumnos) {
+                String query = String.format("INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (%s,%s,%d,%d)",
+                        alumno.nombre, alumno.apellidos, alumno.altura, alumno.aula);
+                alumnoInsertado = sentencia.executeUpdate(query);
+                if (alumnoInsertado == 0) { //no creo que esto funcione
+                    this.cdb.conexion.rollback(); // es esto necesario si no se hace el commit cuando autoCommit=false?
+                    return 0; // igual es mejor lanzar new sqlexception?
+                }
+            }
+            this.cdb.conexion.commit();
+            return alumnos.length;
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+            return 0;
+        }
+    }
+
+    /**
+     * Descarga todas las imagenes de la base de datos en la carpeta especificada
+     * @param directorio directorio donde descargar las imagenes
+     */
+    public void descargarImagenes(File directorio) {
+        ResultSet rs;
+        if (directorio.exists()&&directorio.isDirectory()) {
+            try (Statement sentencia = this.cdb.conexion.createStatement()) {
+                String query = "Select * from imagenes";
+                rs = sentencia.executeQuery(query);
+                while (rs.next()) {
+                    try {
+                        FileOutputStream fos = new FileOutputStream(directorio.getAbsolutePath()+"/"+rs.getString("nombre"));                    
+                        InputStream in = rs.getBinaryStream("imagen");
+                        byte[] buffer = new byte[1000];
+                        int i;
+                        while((i=in.read(buffer))!=-1){
+                            fos.write(buffer,0,i);
+                        }
+                        in.close();
+                        fos.close();
+                    } catch (IOException e) {                       
+                        System.err.println("error guardando la imagen");
+                    }
+                }
+            } catch (SQLException e) {
+                e.getSQLState();
+                e.getErrorCode();
+                e.getLocalizedMessage();
+            }
+        }
+        // FileInputStream fis = new FileInputStream()
+    }
+    /**
+     * Consigue las imagenes de un directorio y las guarda en la base de datos
+     * @param directorio directorio donde están las imágenes
+     */
+    public void importarImagenes(File directorio){    
+        try (Statement sentencia = this.cdb.conexion.createStatement()) {      
+            FileFilter imageFilter = new FileFilter() {
+                String[] extensiones = {"jpg","png","gif","jpeg"};
+                @Override
+                public boolean accept(File archivo) {
+                    String name = archivo.getName();
+                    for (int i = 0; i < extensiones.length; i++) {
+                        if(name.endsWith(extensiones[i])){
+                            return true;
+                        }
+                    }
+                    return false;
+                }               
+            };
+            File[] imagenes = directorio.listFiles(imageFilter);
+            if(directorio.exists()&& directorio.isDirectory()&&imagenes.length>0){
+                String query= "insert into imagenes values (?,?)";
+                if(sentenciaPreparadaImagen==null){
+                    sentenciaPreparadaImagen=this.cdb.conexion.prepareStatement(query);
+                }
+                for (File imagen : imagenes) {
+                    try{
+                        FileInputStream fis = new FileInputStream(imagen);
+                        long longitu = imagen.length();
+                        sentenciaPreparadaImagen.setString(1, imagen.getName());
+                        sentenciaPreparadaImagen.setBinaryStream(2, fis,longitu);
+                        sentenciaPreparadaImagen.executeUpdate(); //esto funciona MENOS con imagenes super grandes
+                        fis.close();
+                    }catch(FileNotFoundException e){
+                        System.err.println("nos hemos quedado sin cena");
+                    }catch(IOException emm){
+                        System.err.println("wtf mi pana");
+                    }
+                }                 
+            }
+        } catch (SQLException e) {
+            e.getSQLState();
+            e.getErrorCode();
+            e.getLocalizedMessage();
+        }
+    }
     public static void main(String[] args) throws Exception {
 
-        
         ConsultasAlumnos consu = new ConsultasAlumnos();
         consu.cdb = new ConectarDB();
         consu.cdb.conectar("conectores", "localhost", "root", "");
@@ -624,9 +747,16 @@ public class ConsultasAlumnos {
         // Columna col = new Columna("suspensos", "asignaturas", "int", null);
         // consu.engadirTabla(col);
         // consu.getDatosDeLasTablas("a", false, true);
-        consu.consigueListaDeDrivers();
+        String directorioImagenes = "C:\\Users\\Pablo\\Downloads\\kujo_jotaro\\iddle";
+        File descarga = new File(directorioImagenes);
+        consu.importarImagenes(descarga);
+        String path = "src";
+        File file = new File(path);
+        consu.descargarImagenes(file);
+        //consu.consigueListaDeDrivers();
         consu.cdb.CerrarConexion();
     }
+    
 }
 
 /*
