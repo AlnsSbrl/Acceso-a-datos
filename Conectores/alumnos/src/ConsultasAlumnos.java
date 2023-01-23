@@ -446,11 +446,12 @@ public class ConsultasAlumnos {
      * @param permiteMatchALaDerecha   permite tablas que cumplan el patrón del
      *                                 nombre, sin importar que no lo cumpla a la
      *                                 derecha de este
+     * @apiNote corregido
      */
     public void getDatosDeLasTablas(String tableNamePattern, boolean permiteMatchALaIzquierda,
             boolean permiteMatchALaDerecha) {
         DatabaseMetaData dbmd;
-        ResultSet databases, columnas;
+        ResultSet columnas;
 
         if (permiteMatchALaIzquierda) {
             tableNamePattern = "%" + tableNamePattern;
@@ -460,29 +461,29 @@ public class ConsultasAlumnos {
         }
         try {
             dbmd = this.cdb.conexion.getMetaData();
-            databases = dbmd.getCatalogs();
-            while (databases.next()) {
-                columnas = dbmd.getColumns(databases.getString("TABLE_CAT"), null, tableNamePattern, null);
-                while (columnas.next()) {
-                    System.out.printf("Posicion %d"
-                            + "\nBase de datos\t %s"
-                            + "\nTabla \t %s"
-                            + "\nTipo de dato \t %s"
-                            + "\nTamaño de la columna\t %d"
-                            + "\nPermite nulos?\t %s"
-                            + "\nSe autoincrementa sola?\t %s\n\n",
-                            columnas.getRow(),
-                            columnas.getString("TABLE_CAT"),
-                            columnas.getString("TABLE_NAME"),
-                            columnas.getString("TYPE_NAME"),
-                            columnas.getInt("COLUMN_SIZE"),
-                            columnas.getInt("NULLABLE") == 1 ? "Sí" : "No", // tecnicamente esto tiene un tercer valor,
-                                                                            // cuando no se sabe si se puede nular o no
-                                                                            // pero...//TAMBIEN acabo de ver que existe
-                                                                            // el getString("IS_NULLABLE")
-                            columnas.getString("IS_AUTOINCREMENT"));
-                }
+            // databases = dbmd.getCatalogs();
+            // while (databases.next()) { esto no hace falta si ponemos "null" como catalog en getColumns()
+            columnas = dbmd.getColumns(null, null, tableNamePattern, null);
+            while (columnas.next()) {
+                System.out.printf("Posicion %d"
+                        + "\nBase de datos\t %s"
+                        + "\nTabla \t %s"
+                        + "\nTipo de dato \t %s"
+                        + "\nTamaño de la columna\t %d"
+                        + "\nPermite nulos?\t %s"
+                        + "\nSe autoincrementa sola?\t %s\n\n",
+                        columnas.getRow(),
+                        columnas.getString("TABLE_CAT"),
+                        columnas.getString("TABLE_NAME"),
+                        columnas.getString("TYPE_NAME"),
+                        columnas.getInt("COLUMN_SIZE"),
+                        columnas.getInt("NULLABLE") == 1 ? "Sí" : "No", // tecnicamente esto tiene un tercer valor,
+                                                                        // cuando no se sabe si se puede nular o no
+                                                                        // pero...//TAMBIEN acabo de ver que existe
+                                                                        // el getString("IS_NULLABLE")
+                        columnas.getString("IS_AUTOINCREMENT"));
             }
+            // }
 
         } catch (SQLException e) {
             e.getSQLState();
@@ -493,6 +494,7 @@ public class ConsultasAlumnos {
 
     /**
      * Muestra las claves primarias y foráneas de las tablas de la db
+     * @apiNote corregido
      */
     public void getPrimaryAndForeignKeys() {
         DatabaseMetaData dbmd;
@@ -519,6 +521,7 @@ public class ConsultasAlumnos {
 
     /**
      * Realiza una sentencia y obtiene metadata de los resultados de la consulta
+     * @apiNote corregido
      */
     public void datosDeLasColumnasDeLaSentencia() {
         ResultSetMetaData rsmd;
@@ -526,8 +529,7 @@ public class ConsultasAlumnos {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
             String query = "select *, nombre as nom from alumnos";
             res = sentencia.executeQuery(query);
-            rsmd = res.getMetaData();
-            System.err.println(rsmd.getColumnCount());
+            rsmd = res.getMetaData();            
             for (int i = 1; i <= rsmd.getColumnCount(); i++) {
                 // tiene que empezar en 1..................
                 System.out.printf("Nombre columna \t %s"
@@ -549,17 +551,18 @@ public class ConsultasAlumnos {
         }
     }
 
+    /**
+     * Muestra la lista de Drivers
+     * @apiNote corregido
+     */
     public void consigueListaDeDrivers() {
-        // DriverManager driverManager;
-        try {
-            // no sé si se refiere a esto...?
+       
+        try {          
             Enumeration<Driver> drivers = DriverManager.getDrivers();
             while (drivers.hasMoreElements()) {
                 System.out.println(drivers.nextElement().toString());
             }
         } catch (Exception e) {
-            // e.getSQLState();
-            // e.getErrorCode();
             e.getLocalizedMessage();
         }
     }
@@ -575,6 +578,7 @@ public class ConsultasAlumnos {
     public int insertaAlumnos(Alumno[] alumnos) {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
             this.cdb.conexion.setAutoCommit(false);
+
             for (Alumno alumno : alumnos) {
                 // supuestamente se cambió la tabla para que se autoincrementen los valores del
                 // codigo
@@ -747,12 +751,12 @@ public class ConsultasAlumnos {
         // Columna col = new Columna("suspensos", "asignaturas", "int", null);
         // consu.engadirTabla(col);
         // consu.getDatosDeLasTablas("a", false, true);
-        String directorioImagenes = "C:\\Users\\Pablo\\Downloads\\kujo_jotaro\\iddle";
-        File descarga = new File(directorioImagenes);
-        consu.importarImagenes(descarga);
-        String path = "src";
-        File file = new File(path);
-        consu.descargarImagenes(file);
+        //String directorioImagenes = "C:\\Users\\Pablo\\Downloads\\kujo_jotaro\\iddle";
+        //File descarga = new File(directorioImagenes);
+        //consu.importarImagenes(descarga);
+        //String path = "src";
+        //File file = new File(path);
+        //consu.descargarImagenes(file);
         //consu.consigueListaDeDrivers();
         consu.cdb.CerrarConexion();
     }
