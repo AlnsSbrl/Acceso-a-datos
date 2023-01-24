@@ -1,5 +1,6 @@
 public class Alumno {
     //TODO añadir un int de codigo? para probar cosas que den error pej
+    public int codigo;
     public String nombre;
     public String apellidos;
     public int altura;

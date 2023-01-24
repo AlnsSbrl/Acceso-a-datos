@@ -573,17 +573,18 @@ public class ConsultasAlumnos {
      * 
      * @param alumnos grupo de alumnos a insertar
      * @return el número de alumnos insertados en la tabla
-     * @apiNote NO lo he probado (no he cambiado las tablas a autoincrement)
+     * @apiNote corregido. El otro método NO era necesario, había que probarlo dos veces, con y sin fallo, no hacer dos metodos diferentes
      */
-    public int insertaAlumnos(Alumno[] alumnos) {
+    public int insertaAlumnosProvocandoFallo(Alumno[] alumnos) {
         try (Statement sentencia = this.cdb.conexion.createStatement()) {
             this.cdb.conexion.setAutoCommit(false);
 
             for (Alumno alumno : alumnos) {
                 // supuestamente se cambió la tabla para que se autoincrementen los valores del
                 // codigo
-                String query = String.format("INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (%s,%s,%d,%d)",
+                String query = String.format("INSERT INTO alumnos(codigo,nombre,apellidos,altura,aula) VALUES (%d,'%s','%s',%d,%d)",alumno.codigo,
                         alumno.nombre, alumno.apellidos, alumno.altura, alumno.aula);
+                        System.out.println(query);
                 sentencia.executeUpdate(query);
             }
             this.cdb.conexion.commit();
@@ -605,40 +606,9 @@ public class ConsultasAlumnos {
     }
 
     /**
-     * Inserta un grupo de alumnos en la base de datos. Si alguno no se inserta,
-     * detiene la operación y no guarda los cambios
-     * 
-     * @param alumnos grupo de alumnos a insertar
-     * @return el número de alumnos a insertar
-     * @apiNote NO lo he probado (no he cambiado las tablas a autoincrement)
-     */
-    public int insertaAlumnosSinFallo(Alumno[] alumnos) {
-
-        try (Statement sentencia = this.cdb.conexion.createStatement()) {
-            this.cdb.conexion.setAutoCommit(false);
-            int alumnoInsertado = 0;
-            for (Alumno alumno : alumnos) {
-                String query = String.format("INSERT INTO alumnos(nombre,apellidos,altura,aula) VALUES (%s,%s,%d,%d)",
-                        alumno.nombre, alumno.apellidos, alumno.altura, alumno.aula);
-                alumnoInsertado = sentencia.executeUpdate(query);
-                if (alumnoInsertado == 0) { //no creo que esto funcione
-                    this.cdb.conexion.rollback(); // es esto necesario si no se hace el commit cuando autoCommit=false?
-                    return 0; // igual es mejor lanzar new sqlexception?
-                }
-            }
-            this.cdb.conexion.commit();
-            return alumnos.length;
-        } catch (SQLException e) {
-            e.getSQLState();
-            e.getErrorCode();
-            e.getLocalizedMessage();
-            return 0;
-        }
-    }
-
-    /**
      * Descarga todas las imagenes de la base de datos en la carpeta especificada
      * @param directorio directorio donde descargar las imagenes
+     * @apiNote corregido
      */
     public void descargarImagenes(File directorio) {
         ResultSet rs;
@@ -672,6 +642,7 @@ public class ConsultasAlumnos {
     /**
      * Consigue las imagenes de un directorio y las guarda en la base de datos
      * @param directorio directorio donde están las imágenes
+     * @apiNote corregido
      */
     public void importarImagenes(File directorio){    
         try (Statement sentencia = this.cdb.conexion.createStatement()) {      
@@ -720,10 +691,13 @@ public class ConsultasAlumnos {
         ConsultasAlumnos consu = new ConsultasAlumnos();
         consu.cdb = new ConectarDB();
         consu.cdb.conectar("add", "localhost", "root", "");
-        consu.buscaAlumnos("fr");
-        // Alumno[] alumnos = new Alumno[1];
-        // alumnos[0] = new Alumno("que onda", "cor por", 180, 20);
-        // // alumnos[1] = new Alumno("curro", "f", 160, 11);
+        //consu.buscaAlumnos("fr");
+         Alumno[] alumnos = new Alumno[2];
+         alumnos[0] = new Alumno("javi", "duermeUnPoco", 160, 20);
+         alumnos[1] = new Alumno("curro", "bello", 160, 11);
+         alumnos[0].codigo=10;
+         alumnos[1].codigo=10;
+         consu.insertaAlumnosProvocandoFallo(alumnos);
         // consu.insertarAlumnos(alumnos);
         // // String[] asignaturas ={"Acceso a datos","php","frontend","backend","Tekken
         // // 2"};
