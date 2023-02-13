@@ -11,6 +11,7 @@ public class ConsultasLite {
     /**
      * Indica el nombre de las aulas que tengan cierto número de alumnos como mínimo
      * @param minimo el valor mínimo de alumnos
+     * @apiNote corregido
      */
     public void aulasConMinimoXAlumnos(int minimo) {
 
@@ -31,6 +32,7 @@ public class ConsultasLite {
     /**
      * Indica el nombre de las aulas que tengan cierto número de alumnos como mínimo, pero con una sentencia preparada
      * @param minimo valor mínimo de alumnos
+     * @apiNote corregido
      */
     public void aulasConXAlumnosPrepared(int minimo) {
         String query = "Select nombreAula from aulas where puestos >= ?";
@@ -56,6 +58,7 @@ public class ConsultasLite {
      * Inserta un aula en la base de datos embebida
      * @param aula contiene los valores del aula a insertar
      * @return el número de aulas insertadas o -1 si hubo algún problema
+     * @apiNote corregido
      */
     public int insertaAula(Aula aula) {
 
@@ -77,6 +80,7 @@ public class ConsultasLite {
      * Inserta un aula en la base de datos embebida, incluso si ya existe el valor de la clave primaria del aula que se quiere insertar
      * @param aula valores del aula a insertar
      * @return el número de aulas insertadas o -1 si hubo algún problema
+     * @apiNote corregido
      */
     public int insertAulaBruteForce(Aula aula) {
 
@@ -97,6 +101,7 @@ public class ConsultasLite {
      * Inserta los alumnos en las dos bases de datos (la embebida y en mariaDB)
      * @param alumnos valores de los alumnos a insertar
      * @return el número de alumnos que se han insertado o -1 si ha habido algún problema y deshace los cambios
+     * @apiNote corregido: "por ser...mmm tocahuevos...el numero de inserciones no tiene por qué ser igual en ambos sgbd .......pero bueno está bien"
      */
     public int insertaAlumnosConsistentemente(Alumno[] alumnos) {
 
@@ -137,6 +142,7 @@ public class ConsultasLite {
     /**
      * Ejecuta la misma sentencia de búsqueda por patrón de un alumno en ambas bases de datos y compara el tiempo de ejecución de las consultas
      * @param pattern patrón de búsqueda del alumno
+     * @apiNote corregido
      */
     public void buscaAlumnoPorPatronAmbasDB(String pattern) {
 
@@ -161,6 +167,7 @@ public class ConsultasLite {
     }
     /**
      * Clase que ejecuta la sentencia select que se le pasa por parámetro en mariadb y te devuelve el tiempo que tardó en ejecutarse
+     * @apiNote corregido
      */
     class HiloSQLite extends Thread {
         String query;
@@ -195,8 +202,9 @@ public class ConsultasLite {
      * @param elementosAInsertar valores de los alumnos(o aulas) a insertar
      * @return el número de alumnos(o aulas) que se han insertado o -1 si ha habido algún
      *         problema y deshace los cambios
+     * @apiNote corregido
      */
-    public int insertaCosasConsistentemente(Object[] elementosAInsertar) {//lo malo de esto es que puedes meterme un array de varios objetos diferentes...y en teoria deberia cascar
+    public int insertaCosasConsistentemente(Object[] elementosAInsertar) {//si metes obj diferentes la consulta casca, pero como es consistente ante fallos no hay problema
 
         String query="";
         try (
