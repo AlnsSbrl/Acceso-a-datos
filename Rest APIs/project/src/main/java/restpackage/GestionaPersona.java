@@ -19,6 +19,7 @@ public class GestionaPersona {
 		p.setId(0);
 		return p;
 	}
+	
 	@POST
 	@Consumes({MediaType.APPLICATION_XML,MediaType.APPLICATION_JSON})
 	public void guardar(Persona p) {
