@@ -1,6 +1,0 @@
-INDEX VERSION 1.4+C:\Users\Pablo\Desktop\Repositorios de ejercicios de clase\Acceso-a-datos\Rest APIs\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
-3290470772.index
-2045650251.index
-4055906112.index
-3459851261.index
-3581163120.index
